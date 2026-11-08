@@ -128,7 +128,7 @@ export class UI {
         <div class="start-title">Creatures</div>
         <div class="start-sub">Clear the junk. Grow a garden. See who moves in.</div>
         <button class="btn big play">Play</button>
-        <div class="start-ver">v0.1 vertical slice</div>
+        <div class="start-ver">v0.2 · Journal</div>
       </div>`);
     this.start.querySelector('.play').onclick = () => { this.start.classList.add('gone'); this.game.start(); };
     r.appendChild(this.start);
@@ -314,7 +314,7 @@ export class UI {
       const c = g.creatures[k];
       const stage = e.met.has('resident') ? 'Resident' : e.met.has('visit') ? 'Visiting' : e.seen ? 'Appeared' : 'Unknown';
       return `<button class="j-entry btn ${k === key ? 'active' : ''}" data-k="${k}">
-        <img class="j-thumb ${e.seen ? '' : 'silhouette'}" src="${speciesPortrait(k)}" alt="" />
+        <span class="j-thumb"><img class="${e.seen ? '' : 'silhouette'}" src="${speciesPortrait(k)}" alt="" /></span>
         <div class="j-entry-text"><div class="j-entry-name">${e.seen ? (c?.displayName ?? tuning.species[k].name) : '???'}</div><div class="j-entry-stage">${stage}</div></div>
         ${e.unread ? '<span class="marker"></span>' : ''}
       </button>`;
@@ -322,7 +322,7 @@ export class UI {
 
     let page;
     if (!j.seen) {
-      page = `<div class="j-page-head"><img class="j-portrait silhouette" src="${speciesPortrait(key)}" alt="" />
+      page = `<div class="j-page-head"><span class="j-portrait unseen"><img class="silhouette" src="${speciesPortrait(key)}" alt="" /></span>
         <div><div class="j-title">???</div><div class="j-sub">Not yet seen</div></div></div>
         <div class="j-clue"><span>Clue</span>${cfg.clue}</div>`;
     } else {
@@ -331,13 +331,13 @@ export class UI {
         const done = j.met.has(stage);
         const reqs = g.stageRequirements(key, stage);
         const rows = reqs.map((r) => r.revealed
-          ? `<div class="req ${r.have >= r.need || done ? 'met' : ''}"><span>${r.label}</span><b>${done ? '✓' : `${Math.min(r.have, r.need)}/${r.need}`}</b></div>`
+          ? `<div class="req ${r.have >= r.need || done ? 'met' : ''}"><span>${r.label}</span><b>${done ? '' : `${Math.min(r.have, r.need)}/${r.need}`}</b></div>`
           : `<div class="req unknown"><span>???</span><b>?</b></div>`).join('');
         return `<div class="j-stage ${done ? 'done' : ''}"><div class="j-stage-head"><span class="j-check">${done ? ICONS.check : ''}</span>${label}</div>${rows}</div>`;
       }).join('');
       const food = j.met.has('visit') ? `<div class="j-food">Favorite food: <b>${tuning.plants[cfg.food].name}</b></div>` : '';
       const income = j.met.has('resident') ? `<div class="j-food">Earns <b>${cfg.incomePerMin} coins/min</b></div>` : '';
-      page = `<div class="j-page-head"><img class="j-portrait" src="${speciesPortrait(key)}" alt="" />
+      page = `<div class="j-page-head"><span class="j-portrait"><img src="${speciesPortrait(key)}" alt="" /></span>
         <div><div class="j-title">${c?.displayName ?? cfg.name}</div>${c?.customName ? `<div class="j-sub">${cfg.name}</div>` : ''}${food}${income}</div></div>
         <div class="j-stages">${stages}</div>
         <div class="j-clue"><span>Clue</span>${cfg.clue}</div>`;

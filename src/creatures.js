@@ -122,7 +122,11 @@ function buildBumblet() {
   core.position.set(0, 0.55, -0.04);
   body.add(core);
   core.add(kit.mesh(new THREE.SphereGeometry(0.22, 18, 14), yellow, [0, 0, 0], [1, 0.95, 1.2]));
-  for (const z of [-0.06, -0.16]) core.add(kit.mesh(new THREE.TorusGeometry(0.2 - Math.abs(z) * 0.5, 0.035, 8, 24), black, [0, 0, z], [1, 0.95, 1]));
+  // Stripes sit on the body surface: ring radius follows the ellipsoid's cross-section at that depth.
+  for (const z of [-0.02, -0.13]) {
+    const r = 0.22 * Math.sqrt(1 - (z / 0.264) ** 2);
+    core.add(kit.mesh(new THREE.TorusGeometry(r - 0.006, 0.034, 8, 28), black, [0, 0, z], [1, 0.95, 1]));
+  }
   core.add(kit.mesh(new THREE.ConeGeometry(0.05, 0.08, 10), black, [0, 0, -0.28], [1, 1, 1], [-Math.PI / 2, 0, 0]));
   core.add(kit.mesh(new THREE.SphereGeometry(0.1, 10, 8), fuzz, [0, 0.12, 0.1], [1.4, 0.6, 1]));
   const head = new THREE.Group();
