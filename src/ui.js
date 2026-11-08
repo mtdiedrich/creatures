@@ -128,7 +128,7 @@ export class UI {
         <div class="start-title">Creatures</div>
         <div class="start-sub">Clear the junk. Grow a garden. See who moves in.</div>
         <button class="btn big play">Play</button>
-        <div class="start-ver">v0.2 · Journal</div>
+        <div class="start-ver">v0.2.1</div>
       </div>`);
     this.start.querySelector('.play').onclick = () => { this.start.classList.add('gone'); this.game.start(); };
     r.appendChild(this.start);

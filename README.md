@@ -1,4 +1,4 @@
-# Creatures — v0.2
+# Creatures — v0.2.1
 
 Three.js + Vite build of the Creatures spec, through v0.2 (Journal). One garden, three tools, four plants and three species that move through Appear → Visit → Resident. Residents earn coins, coins buy seeds in the shop, and a journal turns hidden requirements into hints.
 
@@ -45,6 +45,20 @@ Dragging with the seed bag plants on every empty soil tile you cross, and draggi
 - Requirements show as "???" until progress reaches 50% (`journal.hintThreshold`) or the requirement is met. A revealed hint stays revealed.
 - The creature info panel only lists revealed requirements, plus a count of unknown ones.
 - A red marker on the Journal button, and on the species' list entry, shows new pages and hints until that page is opened.
+
+## v0.2.1
+
+- A flower requirement that needs only 1 adult reveals as soon as one flower of that type is planted. Every other requirement still reveals at 50%.
+- Desktop browser with mouse and keyboard is the only platform built for now.
+- Models and audio are placeholders until a later art and audio pass.
+
+### Stability run
+
+`?autoplay` loads a dev-only bot (`src/dev/autoplay.js`) that plays the full loop through the real game API. Open `http://localhost:5173/?speed=20&autoplay`, then in the browser console:
+
+```js
+await autoplay.run(60) // minutes of game time; returns a report with a stage timeline and any errors
+```
 
 ## Choices the spec left open
 

@@ -463,7 +463,7 @@ class Game {
     const j = this.journal[key];
     return this.requirementProgress(tuning.species[key][stage]).map((r, i) => {
       const id = `${stage}:${i}`;
-      return { ...r, id, revealed: j.met.has(stage) || j.revealed.has(id) };
+      return { ...r, id, req: tuning.species[key][stage][i], revealed: j.met.has(stage) || j.revealed.has(id) };
     });
   }
 
@@ -477,11 +477,17 @@ class Game {
       for (const stage of STAGES) {
         if (j.met.has(stage)) continue;
         for (const r of this.stageRequirements(key, stage)) {
-          if (!r.revealed && r.have >= r.need * th) { j.revealed.add(r.id); fresh++; }
+          if (!r.revealed && (r.have >= r.need * th || this.plantedEarly(r.req))) { j.revealed.add(r.id); fresh++; }
         }
       }
       if (fresh) this.markUnread(key, 'New hint');
     }
+  }
+
+  // v0.2.1: a flower requirement that needs only 1 adult can't reach 50% before it's met, so planting
+  // one flower of that type (any stage) counts as halfway and reveals it.
+  plantedEarly(req) {
+    return req.kind === 'adult' && req.count === 1 && this.plants.some((p) => p.type === req.plant);
   }
 
   markUnread(key, what) {
@@ -633,3 +639,5 @@ class Game {
 }
 
 window.game = new Game();
+// Dev only: ?autoplay loads a bot that plays the full loop for stability runs.
+if (params.has('autoplay')) import('./dev/autoplay.js').then((m) => { window.autoplay = m.createAutoplay(window.game); });
