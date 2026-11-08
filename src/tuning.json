@@ -1,0 +1,232 @@
+{
+  "map": {
+    "size": 16,
+    "stripWidth": 2,
+    "lawn": {
+      "x": 6,
+      "z": 6,
+      "w": 4,
+      "h": 3
+    },
+    "well": {
+      "x": 5,
+      "z": 7
+    },
+    "sign": {
+      "x": 9,
+      "z": 9
+    },
+    "baseTerrain": "soil",
+    "junkClusters": 5,
+    "junkClusterRadius": [
+      1,
+      1.8
+    ],
+    "junkScatter": 0.06,
+    "rockClusters": 2,
+    "rockClusterRadius": [
+      0.8,
+      1.3
+    ],
+    "rockScatter": 0.02,
+    "clearRadius": 1,
+    "seed": 20261105
+  },
+  "economy": {
+    "startCoins": 20,
+    "startSeeds": {
+      "grass": 10,
+      "red": 3,
+      "blue": 0,
+      "yellow": 0
+    }
+  },
+  "tools": {
+    "rockHits": 3,
+    "canCharges": 10
+  },
+  "plants": {
+    "grass": {
+      "name": "Grass seed",
+      "price": 0,
+      "stages": [
+        "Seed"
+      ],
+      "growTime": 30,
+      "needsWater": false
+    },
+    "red": {
+      "name": "Red flower",
+      "price": 10,
+      "stages": [
+        "Seed",
+        "Sprout",
+        "Bud",
+        "Adult"
+      ],
+      "dryTime": 60,
+      "wetTime": 30,
+      "needsWater": true
+    },
+    "blue": {
+      "name": "Blue flower",
+      "price": 40,
+      "stages": [
+        "Seed",
+        "Sprout",
+        "Bud",
+        "Adult"
+      ],
+      "dryTime": 60,
+      "wetTime": 30,
+      "needsWater": true
+    },
+    "yellow": {
+      "name": "Yellow flower",
+      "price": 20,
+      "stages": [
+        "Seed",
+        "Sprout",
+        "Bud",
+        "Adult"
+      ],
+      "dryTime": 60,
+      "wetTime": 30,
+      "needsWater": true
+    }
+  },
+  "species": {
+    "A": {
+      "name": "Puffkin",
+      "food": "red",
+      "appear": [
+        {
+          "kind": "grass",
+          "count": 16
+        }
+      ],
+      "visit": [
+        {
+          "kind": "adult",
+          "plant": "red",
+          "count": 1
+        }
+      ],
+      "resident": [
+        {
+          "kind": "grass",
+          "count": 20
+        },
+        {
+          "kind": "adult",
+          "plant": "red",
+          "count": 3
+        }
+      ],
+      "settleBonus": 50,
+      "incomePerMin": 5,
+      "speed": 1.5,
+      "clue": "Loves a wide, open lawn."
+    },
+    "B": {
+      "name": "Glimmer",
+      "food": "blue",
+      "appear": [
+        {
+          "kind": "adult",
+          "plant": "blue",
+          "count": 1
+        }
+      ],
+      "visit": [
+        {
+          "kind": "adult",
+          "plant": "blue",
+          "count": 1
+        }
+      ],
+      "resident": [
+        {
+          "kind": "adult",
+          "plant": "blue",
+          "count": 2
+        },
+        {
+          "kind": "adult",
+          "plant": "red",
+          "count": 4
+        }
+      ],
+      "settleBonus": 100,
+      "incomePerMin": 10,
+      "speed": 1.25,
+      "clue": "Drawn to blue blossoms."
+    },
+    "C": {
+      "name": "Bumblet",
+      "clue": "Hums near red and blue flowers growing side by side.",
+      "food": "yellow",
+      "appear": [
+        {
+          "kind": "adjacent",
+          "plants": [
+            "red",
+            "blue"
+          ],
+          "count": 1
+        }
+      ],
+      "visit": [
+        {
+          "kind": "adult",
+          "plant": "yellow",
+          "count": 1
+        }
+      ],
+      "resident": [
+        {
+          "kind": "adultAny",
+          "count": 6
+        },
+        {
+          "kind": "colors",
+          "count": 3
+        },
+        {
+          "kind": "grass",
+          "count": 10
+        }
+      ],
+      "settleBonus": 80,
+      "incomePerMin": 8,
+      "speed": 1.4
+    }
+  },
+  "creatures": {
+    "spawnDelayMin": 1,
+    "spawnDelayMax": 7,
+    "stageCheckInterval": 2,
+    "eatCooldown": 180,
+    "eatTime": 3,
+    "colorFill": 1,
+    "callIntervalMin": 10,
+    "callIntervalMax": 24,
+    "incomeInterval": 60
+  },
+  "journal": {
+    "hintThreshold": 0.5
+  },
+  "camera": {
+    "pitchMin": 30,
+    "pitchMax": 70,
+    "zoomMin": 8,
+    "zoomMax": 30,
+    "startPitch": 52,
+    "startZoom": 16,
+    "edgePanZone": 26,
+    "edgePanSpeed": 0.9
+  },
+  "ui": {
+    "bannerTime": 3
+  }
+}
