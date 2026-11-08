@@ -73,10 +73,12 @@ export class UI {
     this.toolbar = el('div', 'toolbar panel');
     this.toolBtns = TOOL_INFO.map((t, i) => {
       const b = el('button', 'tool-slot btn', `<span class="slot-key glyph" data-g="tool${i + 1}"></span>${t.icon}<span class="tool-name">${t.name}</span>`);
-      b.onclick = () => this.game.selectTool(i);
+      b.onclick = () => (this.game.tool === i ? this.game.putToolAway() : this.game.selectTool(i));
       this.toolbar.appendChild(b);
       return b;
     });
+    this.noToolHint = el('div', 'no-tool-hint', '<span class="glyph" data-g="tool0"></span><span>none</span>');
+    this.toolbar.appendChild(this.noToolHint);
 
     this.seedBox = el('div', 'seed-box panel');
     this.seedPrev = el('button', 'arrow btn', '◀');
@@ -124,16 +126,14 @@ export class UI {
     this.nameModal = el('div', 'modal hidden');
     r.appendChild(this.nameModal);
 
-    // Start screen
-    this.start = el('div', 'start', `
-      <div class="start-card">
-        <div class="start-title">Creatures</div>
-        <div class="start-sub">Clear the junk. Grow a garden. See who moves in.</div>
-        <button class="btn big play">Play</button>
-        <div class="start-ver">v0.3 · Day and night</div>
-      </div>`);
-    this.start.querySelector('.play').onclick = () => { this.start.classList.add('gone'); this.game.start(); };
+    // Start screen: Continue / New game when a save exists, Play when not.
+    this.start = el('div', 'start');
     r.appendChild(this.start);
+    this.renderStart();
+
+    // "Saved" mark after each autosave.
+    this.savedMark = el('div', 'saved-mark', '✓ Saved');
+    r.appendChild(this.savedMark);
 
     // Touch-only back button (no hover/keys on touch).
     this.backBtn = el('button', 'back-btn panel btn', ICONS.close);
@@ -156,6 +156,7 @@ export class UI {
     this.renderClock();
     this.journalMarker.classList.toggle('hidden', !Object.values(g.journal).some((e) => e.unread));
     this.toolBtns.forEach((b, i) => b.classList.toggle('active', g.tool === i));
+    this.noToolHint.classList.toggle('active', g.tool === -1);
     const seed = SEED_ORDER[g.seedIndex];
     this.seedBox.classList.toggle('dim', g.tool !== 2);
     const count = g.seeds[seed];
@@ -224,6 +225,37 @@ export class UI {
     this.clockBox.querySelector('.clock-weather').innerHTML = d.raining ? ICONS.rain : '';
     this.clockBox.classList.toggle('night', d.nightFactor > 0.5);
     this.clockBox.title = d.raining ? 'Raining' : 'Clear';
+  }
+
+  // ---------- title card ----------
+  renderStart(confirming = false) {
+    const st = this.game.saveStatus;
+    const head = `<div class="start-title">Creatures</div>
+      <div class="start-sub">Clear the junk. Grow a garden. See who moves in.</div>`;
+    const ver = `<div class="start-ver">v0.3.1 · Saving</div>`;
+    let body;
+    if (confirming) {
+      body = `<div class="start-confirm">Start over? Your saved garden will be replaced.</div>
+        <div class="start-buttons"><button class="btn cancel">Cancel</button><button class="btn big danger new-confirm">Start over</button></div>`;
+    } else if (st.state === 'ok') {
+      body = `<div class="start-buttons"><button class="btn big play">Continue</button><button class="btn new-game">New game</button></div>
+        <div class="start-meta">Day ${st.summary.day} · ${st.summary.coins} coins</div>`;
+    } else {
+      const note = st.state === 'newer' ? '<div class="start-meta warn">Your save is from a newer version and can’t be loaded here. It won’t be touched; this game won’t save.</div>'
+        : st.state === 'damaged' ? '<div class="start-meta warn">Your save couldn’t be read. Playing keeps a backup and starts fresh.</div>' : '';
+      body = `<button class="btn big play">Play</button>${note}`;
+    }
+    this.start.innerHTML = `<div class="start-card">${head}${body}${ver}</div>`;
+    const go = (fn) => { this.start.classList.add('gone'); fn(); };
+    const q = (sel) => this.start.querySelector(sel);
+    if (q('.play')) q('.play').onclick = () => go(() => (st.state === 'ok' ? this.game.continueGame() : this.game.newGame()));
+    if (q('.new-game')) q('.new-game').onclick = () => { this.game.audio.play?.('menu'); this.renderStart(true); };
+    if (q('.cancel')) q('.cancel').onclick = () => this.renderStart(false);
+    if (q('.new-confirm')) q('.new-confirm').onclick = () => go(() => this.game.newGame());
+  }
+
+  flashSaved() {
+    this.savedMark.classList.remove('show'); void this.savedMark.offsetWidth; this.savedMark.classList.add('show');
   }
 
   // ---------- context menu ----------

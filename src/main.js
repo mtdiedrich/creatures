@@ -13,11 +13,13 @@ import { UI, SEED_ORDER } from './ui.js';
 import { globalUniforms } from './art.js';
 import { ICONS } from './icons.js';
 import { DayCycle } from './daycycle.js';
+import { peekSave, applySave, writeSave, deleteSave, backupDamaged, loadSettings, saveSettings } from './save.js';
 
 const CT = tuning.creatures;
 // Order matches the number keys: 1 shovel, 2 watering can, 3 seed bag.
 const TOOLS = ['shovel', 'can', 'seed'];
 const SEED_TOOL = TOOLS.indexOf('seed');
+const NO_TOOL = -1; // v0.3.1: Put tool away
 const SPECIES = Object.keys(tuning.species);
 const STAGES = ['appear', 'visit', 'resident'];
 const params = new URLSearchParams(location.search);
@@ -75,6 +77,7 @@ class Game {
       journal: () => (this.ui.journalOpen ? this.back() : this.openJournal()),
       tool: (d) => (this.ui.journalOpen ? this.ui.flipJournal(d) : this.cycleTool(d)),
       selectTool: (i) => this.selectTool(i),
+      putAway: () => this.putToolAway(),
       seed: (d) => this.cycleSeed(d),
       zoom: (f) => this.cam.zoom(f),
       wheel: (dy) => this.onWheel(dy),
@@ -84,7 +87,16 @@ class Game {
       mute: () => this.toggleMute(),
     });
     this.dayCycle = new DayCycle(this);
+    // v0.3.1 saving: look at the stored game before the title card is built.
+    this.saveStatus = peekSave();
+    this.settings = loadSettings();
+    this.audio.muted = !!this.settings.muted;
+    this.saveDisabled = this.saveStatus.state === 'newer';
+    this.saveTimer = 0;
     this.ui = new UI(this);
+    if (this.audio.muted) this.ui.muteBtn.innerHTML = ICONS.mute;
+    addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.save(); });
+    addEventListener('pagehide', () => this.save());
 
     if (TIME_SCALE !== 1) {
       const badge = document.createElement('div');
@@ -159,10 +171,39 @@ class Game {
     this.camera.updateProjectionMatrix();
   }
 
-  start() {
+  // ---------- start, save, load ----------
+  continueGame() {
+    try {
+      applySave(this, this.saveStatus.data);
+    } catch (e) {
+      // A save that loads badly is treated like a damaged one: keep a backup, start fresh.
+      console.warn('Save failed to load', e);
+      backupDamaged(JSON.stringify(this.saveStatus.data));
+      location.reload();
+      return;
+    }
+    this.beginPlay();
+  }
+
+  newGame() {
+    if (this.saveStatus.state === 'ok') deleteSave();
+    if (this.saveStatus.state === 'damaged') backupDamaged(this.saveStatus.raw);
+    this.beginPlay();
+    if (this.saveStatus.state === 'damaged') this.ui.tip("Your save couldn't be read. A backup was kept; starting a new garden.", 'weather');
+    if (this.saveStatus.state === 'newer') this.ui.tip('Your save is from a newer version. Playing without saving so it stays safe.', 'weather');
+    this.save();
+  }
+
+  beginPlay() {
     this.audio.init();
     this.started = true;
     this.audio.play('menu');
+  }
+
+  save() {
+    if (!this.started || this.saveDisabled) return;
+    this.saveTimer = 0;
+    if (writeSave(this)) this.ui.flashSaved();
   }
 
   get overlayOpen() { return this.ui.shopOpen || this.ui.journalOpen || this.ui.nameOpen || !this.started; }
@@ -193,7 +234,7 @@ class Game {
 
   // What would "Use tool" do on this target? Returns {ok, label}.
   preview(target) {
-    if (!target) return null;
+    if (!target || this.tool === NO_TOOL) return null;
     const tool = TOOLS[this.tool];
     if (target.kind === 'creature' || target.kind === 'outside') return null;
     const tile = target.tile;
@@ -232,6 +273,7 @@ class Game {
       this.audio.play('menu');
       return;
     }
+    if (this.tool === NO_TOOL) return; // holding nothing: select only, change nothing
     if (t.tile) this.paintState = { visited: new Set([t.tile.x + ',' + t.tile.z]), startType: t.kind === 'plant' ? 'plant' : t.tile.type };
     this.useTool(t);
   }
@@ -387,7 +429,17 @@ class Game {
     this.tool = i;
     this.audio.play('menu');
   }
-  cycleTool(d) { this.selectTool((this.tool + d + TOOLS.length) % TOOLS.length); }
+  cycleTool(d) {
+    // From no tool, next picks the shovel and previous picks the seed bag.
+    if (this.tool === NO_TOOL) return this.selectTool(d > 0 ? 0 : TOOLS.length - 1);
+    this.selectTool((this.tool + d + TOOLS.length) % TOOLS.length);
+  }
+  putToolAway() {
+    if (this.tool === NO_TOOL) return;
+    this.tool = NO_TOOL;
+    this.paintState = null;
+    this.audio.play('menu');
+  }
   cycleSeed(d) {
     if (this.tool !== SEED_TOOL) this.tool = SEED_TOOL;
     this.seedIndex = (this.seedIndex + d + SEED_ORDER.length) % SEED_ORDER.length;
@@ -407,6 +459,7 @@ class Game {
     this.coins -= price;
     this.seeds[id] += n;
     this.audio.play('buy');
+    this.save();
     this.ui.renderShop();
   }
 
@@ -420,6 +473,8 @@ class Game {
 
   toggleMute() {
     this.audio.setMuted(!this.audio.muted);
+    this.settings.muted = this.audio.muted;
+    saveSettings(this.settings);
     this.ui.muteBtn.innerHTML = this.audio.muted ? ICONS.mute : ICONS.sound;
   }
 
@@ -523,6 +578,7 @@ class Game {
     j.met.add(stage);
     if (stage === 'appear' && !j.seen) { j.seen = true; this.markUnread(key, 'New journal page'); }
     if (this.ui.journalOpen) this.ui.renderJournal();
+    this.save(); // autosave right after any stage change
   }
 
   stageCheck() {
@@ -617,6 +673,8 @@ class Game {
       this.stageTimer += dt;
       if (this.stageTimer >= CT.stageCheckInterval) { this.stageTimer = 0; this.stageCheck(); }
       for (const c of Object.values(this.creatures)) if (c) c.update(dt);
+      this.saveTimer += raw;
+      if (this.saveTimer >= 30) this.save(); // autosave every 30 s of play
     } else if (!this.started) {
       // Gentle idle orbit behind the title card.
       this.cam.orbit(raw * 0.05);

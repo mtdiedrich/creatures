@@ -88,7 +88,7 @@ export function createAutoplay(game) {
   }
 
   async function run(minutes = 60) {
-    if (!g.started) { document.querySelector('.play')?.click(); }
+    if (!g.started) { document.querySelector('.start')?.classList.add('gone'); g.newGame(); }
     // Drive the loop ourselves at a fixed step so the run doesn't depend on the tab being visible.
     g.clock.getDelta = () => 0.05;
     const end = g.time + minutes * 60;

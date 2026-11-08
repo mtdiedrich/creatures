@@ -1,4 +1,4 @@
-# Creatures — v0.3
+# Creatures — v0.3.1
 
 Three.js + Vite build of the Creatures spec, through v0.3 (Day/night and rain). One garden, three tools, four plants and five species that move through Appear → Visit → Resident. Residents earn coins, coins buy seeds in the shop, a journal turns hidden requirements into hints, and a 20-minute day cycle with rain drives growth, hunger and when some species show up.
 
@@ -24,6 +24,7 @@ All tuning values live in `src/tuning.json`. Add `?speed=10` to the URL to fast-
 | Open shop | B | Shop button |
 | Open journal | J | Journal button |
 | Select tool | 1 shovel, 2 watering can, 3 seed bag (X / Z cycle) | Tap a tool |
+| Put tool away | 0, or click the held tool again | Tap the held tool |
 | Next / previous seed | Wheel while the seed bag is held | ◀ ▶ |
 | Turn journal page | X / Z (next / previous tool) | ◀ ▶ |
 | Mute | M | Speaker button |
@@ -47,6 +48,14 @@ Dragging with the seed bag plants on every empty soil tile you cross, and draggi
 - Requirements show as "???" until progress reaches 50% (`journal.hintThreshold`) or the requirement is met. A revealed hint stays revealed.
 - The creature info panel only lists revealed requirements, plus a count of unknown ones.
 - A red marker on the Journal button, and on the species' list entry, shows new pages and hints until that page is opened.
+
+## Saving (v0.3.1)
+
+- The game autosaves to this browser every 30 s of play, after each stage change and purchase, and when the tab is hidden or closed. A "Saved" mark flashes.
+- The title card offers Continue (with the saved day and coins) or New game, which asks before replacing the save.
+- Nothing happens while the game is closed.
+- A save from a newer version is never overwritten; a damaged one is kept as `creatures.save.backup` and the game starts fresh.
+- URLs with `?speed` or `?autoplay` use a separate save (`creatures.save.dev`), so playtest tools never touch your garden.
 
 ## Day, night and rain (v0.3)
 

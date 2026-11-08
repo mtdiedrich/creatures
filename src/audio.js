@@ -12,7 +12,7 @@ export class Audio {
   init() {
     if (this.ctx) { this.ctx.resume(); return; }
     const ctx = (this.ctx = new (window.AudioContext || window.webkitAudioContext)());
-    this.master = ctx.createGain(); this.master.gain.value = 0.8;
+    this.master = ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.8;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
     this.master.connect(comp).connect(ctx.destination);

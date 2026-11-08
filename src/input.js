@@ -33,7 +33,7 @@ const GLYPHS = {
     journal: key('J'),
     flip: key('Z') + key('X'),
     tool: key('1') + key('2') + key('3'),
-    tool1: key('1'), tool2: key('2'), tool3: key('3'),
+    tool1: key('1'), tool2: key('2'), tool3: key('3'), tool0: key('0'),
     seed: mouseSvg('wheel'),
     pan: key('W') + key('A') + key('S') + key('D'),
     move: '',
@@ -48,7 +48,7 @@ const GLYPHS = {
     journal: touch('Journal'),
     flip: touch('◀ ▶'),
     tool: touch('Tap tool'),
-    tool1: '', tool2: '', tool3: '',
+    tool1: '', tool2: '', tool3: '', tool0: '',
     pan: touch('Drag'),
     seed: touch('Tap ◀ ▶'),
     move: '',
@@ -106,6 +106,7 @@ export class Input {
     else if (is('nextTool')) this.h.tool(1);
     else if (is('prevTool')) this.h.tool(-1);
     else if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') this.h.selectTool(Number(e.code.slice(5)) - 1);
+    else if (e.code === 'Digit0') this.h.putAway();
     else if (e.code === 'KeyM') this.h.mute();
     else return;
     e.preventDefault();
