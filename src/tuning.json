@@ -200,6 +200,98 @@
       "settleBonus": 80,
       "incomePerMin": 8,
       "speed": 1.4
+    },
+    "D": {
+      "name": "Moonmoth",
+      "clue": "Flutters in after dark when yellow blooms are plentiful.",
+      "food": "red",
+      "active": "night",
+      "appear": [
+        {
+          "kind": "adult",
+          "plant": "yellow",
+          "count": 3
+        },
+        {
+          "kind": "night",
+          "count": 1
+        }
+      ],
+      "visit": [
+        {
+          "kind": "adult",
+          "plant": "red",
+          "count": 1
+        },
+        {
+          "kind": "night",
+          "count": 1
+        }
+      ],
+      "resident": [
+        {
+          "kind": "adult",
+          "plant": "yellow",
+          "count": 4
+        },
+        {
+          "kind": "adult",
+          "plant": "red",
+          "count": 4
+        },
+        {
+          "kind": "nights",
+          "count": 1
+        }
+      ],
+      "settleBonus": 80,
+      "incomePerMin": 8,
+      "speed": 1.3
+    },
+    "E": {
+      "name": "Puddlehop",
+      "clue": "Only ventures out when it rains.",
+      "food": "blue",
+      "active": "rain",
+      "appear": [
+        {
+          "kind": "soil",
+          "count": 8
+        },
+        {
+          "kind": "rain",
+          "count": 1
+        }
+      ],
+      "visit": [
+        {
+          "kind": "adult",
+          "plant": "blue",
+          "count": 1
+        },
+        {
+          "kind": "rain",
+          "count": 1
+        }
+      ],
+      "resident": [
+        {
+          "kind": "soil",
+          "count": 12
+        },
+        {
+          "kind": "adult",
+          "plant": "blue",
+          "count": 3
+        },
+        {
+          "kind": "showers",
+          "count": 2
+        }
+      ],
+      "settleBonus": 80,
+      "incomePerMin": 8,
+      "speed": 1.4
     }
   },
   "creatures": {
@@ -211,10 +303,26 @@
     "colorFill": 1,
     "callIntervalMin": 10,
     "callIntervalMax": 24,
-    "incomeInterval": 60
+    "incomeInterval": 60,
+    "hungerLimit": 1200
   },
   "journal": {
     "hintThreshold": 0.5
+  },
+  "time": {
+    "dayLength": 1200,
+    "phases": {
+      "day": 720,
+      "dusk": 120,
+      "night": 240,
+      "dawn": 120
+    },
+    "startTime": 120,
+    "rain": {
+      "chancePerDay": 0.3,
+      "minLength": 120,
+      "maxLength": 240
+    }
   },
   "camera": {
     "pitchMin": 30,

@@ -1,6 +1,6 @@
-# Creatures — v0.2.1
+# Creatures — v0.3
 
-Three.js + Vite build of the Creatures spec, through v0.2 (Journal). One garden, three tools, four plants and three species that move through Appear → Visit → Resident. Residents earn coins, coins buy seeds in the shop, and a journal turns hidden requirements into hints.
+Three.js + Vite build of the Creatures spec, through v0.3 (Day/night and rain). One garden, three tools, four plants and five species that move through Appear → Visit → Resident. Residents earn coins, coins buy seeds in the shop, a journal turns hidden requirements into hints, and a 20-minute day cycle with rain drives growth, hunger and when some species show up.
 
 ```bash
 npm install
@@ -37,6 +37,8 @@ Dragging with the seed bag plants on every empty soil tile you cross, and draggi
 | A | Puffkin | Red flower | 16 grass tiles | Adult red flower | 20 grass, 3 adult red |
 | B | Glimmer | Blue flower | Adult blue flower | Adult blue flower | 2 adult blue, 4 adult red |
 | C | Bumblet | Yellow flower | A red and a blue flower on neighbouring tiles | Adult yellow flower | 6 adult flowers, 3 colors, 10 grass |
+| D | Moonmoth | Red flower | 3 adult yellow, at night | Adult red, at night | 4 adult yellow, 4 adult red, one full night here |
+| E | Puddlehop | Blue flower | 8 soil tiles, during rain | Adult blue, during rain | 12 soil tiles, 3 adult blue, 2 showers here |
 
 ## Journal (v0.2)
 
@@ -45,6 +47,15 @@ Dragging with the seed bag plants on every empty soil tile you cross, and draggi
 - Requirements show as "???" until progress reaches 50% (`journal.hintThreshold`) or the requirement is met. A revealed hint stays revealed.
 - The creature info panel only lists revealed requirements, plus a count of unknown ones.
 - A red marker on the Journal button, and on the species' list entry, shows new pages and hints until that page is opened.
+
+## Day, night and rain (v0.3)
+
+- One in-game day is 20 minutes of play: 12 day, 2 dusk, 4 night, 2 dawn. The HUD clock shows the time, day number and weather.
+- Time only runs while playing. The seed shop and journal pause it, along with growth, creatures and income.
+- Rain: a 30% chance each day of one 2–4 minute shower. During rain every growing plant counts as watered.
+- Hunger: a resident that goes a full in-game day without eating is Hungry and earns nothing until it eats.
+- Moonmoth sleeps through the day. Music crossfades between a day loop and a night lullaby; rain and crickets add ambience.
+- All times are in `time` in `tuning.json`. In the console, `game.dayCycle.setTime(900)` jumps to night and `game.dayCycle.forceRain()` starts a shower.
 
 ## v0.2.1
 

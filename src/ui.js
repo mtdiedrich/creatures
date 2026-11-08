@@ -1,6 +1,7 @@
 import { ICONS } from './icons.js';
 import { STAGE_LABEL, speciesPortrait } from './creatures.js';
 import tuning from './tuning.json';
+import { PHASE_LABEL } from './daycycle.js';
 
 const el = (tag, cls, html) => {
   const e = document.createElement(tag);
@@ -50,6 +51,7 @@ export class UI {
 
     // Top right: coins + shop
     this.topRight = el('div', 'top-right');
+    this.clockBox = el('div', 'clock-box panel', `<span class="clock-phase"></span><div class="clock-text"><div class="clock-time"></div><div class="clock-day"></div></div><span class="clock-weather"></span>`);
     this.coinBox = el('div', 'coin-box panel', `${ICONS.coin}<span class="coin-val">0</span>`);
     this.coinVal = this.coinBox.querySelector('.coin-val');
     this.shopBtn = el('button', 'shop-btn panel btn', `${ICONS.shop}<span>Seed shop</span><span class="glyph" data-g="shop"></span>`);
@@ -59,7 +61,7 @@ export class UI {
     this.journalMarker = this.journalBtn.querySelector('.marker');
     this.muteBtn = el('button', 'mute-btn panel btn', ICONS.sound);
     this.muteBtn.onclick = () => this.game.toggleMute();
-    this.topRight.append(this.coinBox, this.journalBtn, this.shopBtn, this.muteBtn);
+    this.topRight.append(this.clockBox, this.coinBox, this.journalBtn, this.shopBtn, this.muteBtn);
     r.appendChild(this.topRight);
 
     // Tutorial
@@ -128,7 +130,7 @@ export class UI {
         <div class="start-title">Creatures</div>
         <div class="start-sub">Clear the junk. Grow a garden. See who moves in.</div>
         <button class="btn big play">Play</button>
-        <div class="start-ver">v0.2.1</div>
+        <div class="start-ver">v0.3 · Day and night</div>
       </div>`);
     this.start.querySelector('.play').onclick = () => { this.start.classList.add('gone'); this.game.start(); };
     r.appendChild(this.start);
@@ -151,6 +153,7 @@ export class UI {
   update(dt) {
     const g = this.game;
     this.coinVal.textContent = g.coins;
+    this.renderClock();
     this.journalMarker.classList.toggle('hidden', !Object.values(g.journal).some((e) => e.unread));
     this.toolBtns.forEach((b, i) => b.classList.toggle('active', g.tool === i));
     const seed = SEED_ORDER[g.seedIndex];
@@ -174,7 +177,7 @@ export class UI {
     if (t.kind === 'creature') {
       const c = t.creature;
       html = `<div class="info-title">${c.displayName}${c.customName ? ` <span class="sub">(${c.speciesName})</span>` : ''}</div>
-              <div class="info-stage stage-${c.stage}">${STAGE_LABEL[c.stage]}</div>`;
+              <div class="info-stage stage-${c.stage}">${STAGE_LABEL[c.stage]}</div>${c.behavior === 'sleep' ? ' <span class="info-status sleep">Asleep</span>' : ''}${c.hungry ? ' <span class="info-status hungry">Hungry</span>' : ''}`;
       const next = c.stage === 'appear' ? 'visit' : c.stage === 'visit' ? 'resident' : null;
       if (next) {
         // v0.2: only requirements the journal has revealed are shown.
@@ -185,13 +188,13 @@ export class UI {
         const hidden = reqs.length - shown.length;
         if (hidden) html += `<div class="req-hidden">${shown.length ? `+ ${hidden} more unknown` : 'Needs unknown'} · ${this.g('journal')} Journal</div>`;
       } else {
-        html += `<div class="info-line">Lives here · earns ${c.cfg.incomePerMin} coins/min</div>`;
+        html += c.hungry ? `<div class="info-line">Hungry: earns nothing until it eats ${tuning.plants[c.cfg.food].name.toLowerCase()}s</div>` : `<div class="info-line">Lives here · earns ${c.cfg.incomePerMin} coins/min</div>`;
       }
       if (this.game.cam.follow === c) html += `<div class="info-follow">Following · ${this.g('pan')} or ${this.g('back')} to stop</div>`;
     } else if (t.kind === 'plant') {
       const p = t.plant;
       html = `<div class="info-title">${p.cfg.name}</div><div class="info-stage">${p.type === 'grass' ? 'Growing' : p.stageName}</div>`;
-      if (p.type !== 'grass') html += `<div class="info-line">${p.wet ? '<span class="wet">Wet</span>' : '<span class="dry">Dry</span>'}</div>`;
+      if (p.type !== 'grass' && !p.isAdult) html += `<div class="info-line">${p.wet ? '<span class="wet">Wet</span>' : p.rainWatered ? '<span class="wet">Rain-watered</span>' : '<span class="dry">Dry</span>'}</div>`;
       html += p.isAdult ? `<div class="info-line">Fully grown</div>` : `<div class="info-line">Next stage in <b>${fmtTime(p.timeLeft())}</b></div>`;
     } else if (t.kind === 'tile') {
       const tile = t.tile;
@@ -207,6 +210,20 @@ export class UI {
     }
     this.info.innerHTML = html;
     this.info.classList.remove('hidden');
+  }
+
+  renderClock() {
+    const d = this.game.dayCycle;
+    const key = d.phase + d.raining + d.clock() + d.day;
+    if (key === this.clockKey) return;
+    this.clockKey = key;
+    const phaseIcon = d.phase === 'night' ? ICONS.moon : d.phase === 'day' ? ICONS.sun : ICONS.sunrise;
+    this.clockBox.querySelector('.clock-phase').innerHTML = phaseIcon;
+    this.clockBox.querySelector('.clock-time').textContent = d.clock();
+    this.clockBox.querySelector('.clock-day').textContent = `Day ${d.day} · ${PHASE_LABEL[d.phase]}`;
+    this.clockBox.querySelector('.clock-weather').innerHTML = d.raining ? ICONS.rain : '';
+    this.clockBox.classList.toggle('night', d.nightFactor > 0.5);
+    this.clockBox.title = d.raining ? 'Raining' : 'Clear';
   }
 
   // ---------- context menu ----------

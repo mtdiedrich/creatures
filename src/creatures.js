@@ -167,11 +167,110 @@ function buildBumblet() {
   return { root, body, eyes, ears, wings, legs, head, blob, sat: kit.sat, kind: 'flyer', height: 0.9 };
 }
 
+function buildMoonmoth() {
+  const kit = makeKit();
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+  const fluff = 0xf3ecff, lilac = 0xb9a3ff, deep = 0x6b55d9, glow = 0x9ff3ff;
+  body.add(kit.mesh(new THREE.SphereGeometry(0.17, 16, 12), fluff, [0, 0.58, -0.06], [1, 1, 1.35]));
+  body.add(kit.mesh(new THREE.SphereGeometry(0.13, 14, 10), lilac, [0, 0.52, -0.24], [1, 0.9, 1.2]));
+  // Fluffy collar ruff
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    body.add(kit.mesh(new THREE.SphereGeometry(0.06, 8, 6), 0xffffff, [Math.cos(a) * 0.13, 0.66 + Math.sin(a) * 0.08, 0.08]));
+  }
+  const head = new THREE.Group();
+  head.position.set(0, 0.66, 0.17);
+  body.add(head);
+  head.add(kit.mesh(new THREE.SphereGeometry(0.13, 16, 12), fluff));
+  const eyes = [];
+  for (const s of [-1, 1]) {
+    // Big glossy dark moth eyes with a highlight.
+    const g = new THREE.Group();
+    g.position.set(0.065 * s, 0.02, 0.09);
+    g.add(kit.mesh(new THREE.SphereGeometry(0.058, 12, 10), 0x2a2140, [0, 0, 0], [1, 1.1, 0.8], [0, 0, 0], { roughness: 0.2 }));
+    g.add(kit.mesh(new THREE.SphereGeometry(0.016, 8, 6), 0xffffff, [0.015, 0.025, 0.045], [1, 1, 1], [0, 0, 0], { emissive: 0xffffff, emissiveIntensity: 0.8 }));
+    head.add(g); eyes.push(g);
+  }
+  head.add(kit.mesh(new THREE.SphereGeometry(0.03, 8, 6), 0xff9fd0, [-0.08, -0.05, 0.08], [1, 0.6, 0.4]));
+  head.add(kit.mesh(new THREE.SphereGeometry(0.03, 8, 6), 0xff9fd0, [0.08, -0.05, 0.08], [1, 0.6, 0.4]));
+  const ears = [];
+  for (const s of [-1, 1]) {
+    // Feathery antennae: a stalk with little side fronds.
+    const ant = new THREE.Group();
+    ant.position.set(0.05 * s, 0.1, 0.03);
+    ant.rotation.z = -0.5 * s; ant.rotation.x = 0.2;
+    ant.add(kit.mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.22, 5), deep, [0, 0.11, 0]));
+    for (let k = 0; k < 4; k++) ant.add(kit.mesh(new THREE.SphereGeometry(1, 6, 4), lilac, [0.02 * -s, 0.06 + k * 0.045, 0], [0.035, 0.012, 0.012], [0, 0, 0.6 * s]));
+    head.add(ant); ears.push(ant);
+  }
+  // Two pairs of broad wings with glowing eye-spots. Index parity sets the flap direction per side.
+  const wings = [];
+  const wingMat = { roughness: 0.6, transparent: true, opacity: 0.95 };
+  for (const [s, big] of [[-1, 1], [1, 1], [-1, 0], [1, 0]]) {
+    const hinge = new THREE.Group();
+    hinge.position.set(0.1 * s, 0.68, big ? 0.0 : -0.17);
+    const w = big ? [0.3, 0.025, 0.2] : [0.22, 0.022, 0.15];
+    hinge.add(kit.mesh(new THREE.SphereGeometry(1, 16, 8), lilac, [w[0] * 0.9 * s, 0, big ? 0.04 : -0.04], w, [0, (big ? 0.35 : -0.35) * s, 0], wingMat));
+    hinge.add(kit.mesh(new THREE.SphereGeometry(1, 12, 6), deep, [w[0] * 0.95 * s, 0.012, big ? 0.04 : -0.04], [w[0] * 0.55, 0.02, w[2] * 0.55], [0, (big ? 0.35 : -0.35) * s, 0]));
+    hinge.add(kit.mesh(new THREE.SphereGeometry(0.045, 10, 8), glow, [w[0] * 1.1 * s, 0.02, big ? 0.05 : -0.05], [1, 0.3, 1], [0, 0, 0], { emissive: glow, emissiveIntensity: 1.2 }));
+    body.add(hinge); wings.push(hinge);
+  }
+  const legs = [];
+  for (const [x, z] of [[-0.06, 0.05], [0.06, 0.05], [-0.06, -0.08], [0.06, -0.08]]) legs.push(kit.mesh(new THREE.CylinderGeometry(0.012, 0.008, 0.16, 5), deep, [x, 0.42, z]));
+  legs.forEach((l) => body.add(l));
+  const blob = new THREE.Mesh(new THREE.CircleGeometry(0.26, 20).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18, depthWrite: false }));
+  blob.position.y = 0.02;
+  root.add(blob);
+  return { root, body, eyes, ears, wings, legs, head, blob, sat: kit.sat, kind: 'flyer', height: 0.95, wingSpeed: 9, wingAmp: 0.45 };
+}
+
+function buildPuddlehop() {
+  const kit = makeKit();
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+  const green = 0x2fd39a, belly = 0xdcffb8, dark = 0x1b9a73, leaf = 0x6fcf3a;
+  body.add(kit.mesh(new THREE.SphereGeometry(0.28, 20, 14), green, [0, 0.24, 0], [1.1, 0.75, 1]));
+  body.add(kit.mesh(new THREE.SphereGeometry(0.2, 16, 12), belly, [0, 0.19, 0.12], [1.1, 0.75, 0.7]));
+  // Spots
+  for (const [x, z] of [[-0.14, -0.1], [0.12, -0.14], [0.02, -0.2]]) body.add(kit.mesh(new THREE.SphereGeometry(0.045, 8, 6), dark, [x, 0.4, z], [1, 0.35, 1]));
+  // Eyes sit on top bumps; the bumps double as "ears" for the hop animation.
+  const ears = [], eyes = [];
+  for (const s of [-1, 1]) {
+    const bump = new THREE.Group();
+    bump.position.set(0.12 * s, 0.4, 0.1);
+    bump.add(kit.mesh(new THREE.SphereGeometry(0.085, 12, 10), green));
+    eyes.push(eye(kit, bump, 0, 0.02, 0.05, 0.065));
+    body.add(bump); ears.push(bump);
+  }
+  // Wide smile and rosy cheeks
+  body.add(kit.mesh(new THREE.TorusGeometry(0.1, 0.012, 6, 20, Math.PI), 0x13523f, [0, 0.24, 0.27], [1, 0.7, 1], [0.15, 0, Math.PI]));
+  body.add(kit.mesh(new THREE.SphereGeometry(0.04, 8, 6), 0xff9fb8, [-0.2, 0.25, 0.2], [1, 0.6, 0.4]));
+  body.add(kit.mesh(new THREE.SphereGeometry(0.04, 8, 6), 0xff9fb8, [0.2, 0.25, 0.2], [1, 0.6, 0.4]));
+  // Leaf umbrella hat (animated like a tail)
+  const hat = new THREE.Group();
+  hat.position.set(0, 0.46, -0.06);
+  hat.add(kit.mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.2, 5), 0x3b8a2a, [0, 0.1, 0]));
+  hat.add(kit.mesh(new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), leaf, [0, 0.2, 0], [0.22, 0.07, 0.17], [0.15, 0, 0.1]));
+  hat.add(kit.mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.4, 4), 0x3b8a2a, [0, 0.215, 0], [1, 1, 1], [Math.PI / 2, 0, 0.1]));
+  body.add(hat);
+  const feet = [
+    kit.mesh(new THREE.SphereGeometry(0.08, 10, 8), dark, [-0.16, 0.03, 0.12], [1.3, 0.4, 1.4]),
+    kit.mesh(new THREE.SphereGeometry(0.08, 10, 8), dark, [0.16, 0.03, 0.12], [1.3, 0.4, 1.4]),
+  ];
+  feet.forEach((f) => root.add(f));
+  return { root, body, eyes, ears, feet, tail: hat, head: body, sat: kit.sat, kind: 'hopper', height: 0.7 };
+}
+
 // Per-species visuals: model builder, settle sparkle colour, focus-ring size.
 export const SPECIES_ART = {
   A: { build: buildPuffkin, sparkle: 0xff9f45, ring: 0.8 },
   B: { build: buildGlimmer, sparkle: 0x6fb8ff, ring: 1.0 },
   C: { build: buildBumblet, sparkle: 0xffd23f, ring: 0.85 },
+  D: { build: buildMoonmoth, sparkle: 0x9ff3ff, ring: 0.95 },
+  E: { build: buildPuddlehop, sparkle: 0x7fffd0, ring: 0.85 },
 };
 
 // Full-colour portrait of a species for the journal, rendered once to a data URL.
@@ -204,6 +303,36 @@ export function speciesPortrait(key) {
   return url;
 }
 
+// Speech-bubble sprites for creature status (Zzz, hungry).
+const bubbleCache = new Map();
+function bubbleTexture(kind) {
+  if (bubbleCache.has(kind)) return bubbleCache.get(kind);
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#fff8ea'; x.strokeStyle = '#3b2a1a'; x.lineWidth = 6;
+  x.beginPath(); x.arc(64, 56, 44, 0, Math.PI * 2); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(40, 92); x.lineTo(30, 120); x.lineTo(62, 98); x.fill(); x.stroke();
+  x.beginPath(); x.arc(64, 56, 41, 0, Math.PI * 2); x.fill();
+  if (kind === 'zzz') {
+    x.fillStyle = '#5b6bd6'; x.font = 'bold 34px Fredoka, Trebuchet MS, sans-serif'; x.textAlign = 'center';
+    x.fillText('z', 46, 72); x.font = 'bold 44px Fredoka, Trebuchet MS, sans-serif'; x.fillText('Z', 76, 58);
+  } else {
+    // A flower in the colour of the food it wants.
+    const col = '#' + FLOWER_COLORS[kind.split('-')[1]].petal.toString(16).padStart(6, '0');
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      x.fillStyle = col; x.beginPath(); x.ellipse(64 + Math.cos(a) * 16, 54 + Math.sin(a) * 16, 12, 8, a, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = '#ffd23f'; x.beginPath(); x.arc(64, 54, 9, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#e2574c'; x.font = 'bold 30px Fredoka, Trebuchet MS, sans-serif'; x.textAlign = 'center'; x.fillText('!', 98, 40);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  bubbleCache.set(kind, tex);
+  return tex;
+}
+
 // ---------- Creature ----------
 
 export class Creature {
@@ -232,8 +361,23 @@ export class Creature {
     this.anim = 0;
     this.moveBlend = 0;
     this.incomeTimer = 0;
+    // v0.3 state
+    this.nightsPresent = 0;        // full nights spent here
+    this.presentAtNightStart = false;
+    this.showersSeen = 0;          // rain showers it was here for
+    this.hunger = 0;               // game seconds since a resident last ate
+    this.hungry = false;
+    this.bubble = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTexture('zzz'), transparent: true, depthWrite: false }));
+    this.bubble.scale.set(0.55, 0.55, 1);
+    this.bubble.visible = false;
+    this.bubble.renderOrder = 12;
+    this.root.add(this.bubble);
     game.scene.add(this.root);
   }
+
+  get nocturnal() { return this.cfg.active === 'night'; }
+  // Night creatures sleep through the day.
+  get asleep() { return this.nocturnal && !this.game.dayCycle.isNight; }
 
   get displayName() { return this.customName || this.cfg.name; }
   get speciesName() { return this.cfg.name; }
@@ -284,7 +428,7 @@ export class Creature {
     if (this.behavior !== 'settle') { this.behavior = 'idle'; this.idleTimer = 0.3; }
   }
 
-  canEat() { return this.stage !== 'appear' && this.inside && this.game.time - this.lastEat >= CT.eatCooldown; }
+  canEat() { return this.stage !== 'appear' && this.inside && !this.asleep && this.game.time - this.lastEat >= CT.eatCooldown; }
 
   findFood() {
     const here = this.pos;
@@ -298,6 +442,7 @@ export class Creature {
   }
 
   decide() {
+    if (this.asleep) { this.behavior = 'sleep'; return; }
     if (this.stage === 'appear') {
       // Wander the edge strip.
       for (let i = 0; i < 12; i++) {
@@ -344,6 +489,8 @@ export class Creature {
     if (p && p.isAdult && this.game.plants.includes(p)) {
       p.eaten();
       this.lastEat = this.game.time;
+      this.hunger = 0;
+      this.hungry = false;
       this.game.fx.petals(p.group.position, FLOWER_COLORS[p.type].petal);
       this.game.onCreatureAte(this, p);
     }
@@ -364,6 +511,7 @@ export class Creature {
     this.behavior = 'settle';
     this.settleTimer = 0;
     this.incomeTimer = 0;
+    this.hunger = 0;
     this.game.fx.sparkle(this.pos, SPECIES_ART[this.key].sparkle, 26);
     this.game.fx.sparkle(this.pos, 0xfff27a, 16);
   }
@@ -374,16 +522,22 @@ export class Creature {
 
     // Random calls while present.
     this.callTimer -= dt;
-    if (this.callTimer <= 0) {
+    if (this.callTimer <= 0 && !this.asleep) {
       this.callTimer = CT.callIntervalMin + Math.random() * (CT.callIntervalMax - CT.callIntervalMin);
       g.audio.call(this.key, this.pos);
     }
 
     if (this.stage === 'resident' && this.behavior !== 'settle') {
+      // v0.3 hunger: a resident that goes a full in-game day without eating is Hungry and earns nothing.
+      this.hunger += dt;
+      if (!this.hungry && this.hunger >= CT.hungerLimit) {
+        this.hungry = true;
+        g.ui.tip(`${this.displayName} is hungry`, 'weather');
+      }
       this.incomeTimer += dt;
       if (this.incomeTimer >= CT.incomeInterval) {
         this.incomeTimer -= CT.incomeInterval;
-        g.addCoins(this.cfg.incomePerMin, this.pos);
+        if (!this.hungry) g.addCoins(this.cfg.incomePerMin, this.pos);
       }
     }
 
@@ -413,6 +567,9 @@ export class Creature {
         if (Math.random() < dt * 2 && this.eatPlant) g.fx.petals(this.eatPlant.group.position, FLOWER_COLORS[this.eatPlant.type].petal);
         if (this.eatTimer <= 0) this.finishEat();
         break;
+      case 'sleep':
+        if (!this.asleep) { this.behavior = 'idle'; this.idleTimer = 0.5 + Math.random(); }
+        break;
       case 'settle':
         this.settleTimer += dt;
         this.model.sat.value = Math.min(1, this.settleTimer / CT.colorFill);
@@ -429,6 +586,12 @@ export class Creature {
 
     this.moveBlend += ((moving ? 1 : 0) - this.moveBlend) * Math.min(1, dt * 8);
     this.animate(dt, moving);
+
+    // Status bubble: Zzz while asleep, a food bubble while hungry.
+    const state = this.behavior === 'sleep' ? 'zzz' : this.hungry ? 'hungry-' + this.cfg.food : null;
+    this.bubble.visible = !!state;
+    if (state && this.bubbleState !== state) { this.bubble.material.map = bubbleTexture(state); this.bubbleState = state; }
+    this.bubble.position.set(0.2, this.model.height + 0.3 + Math.sin(this.anim * 2) * 0.05, 0);
   }
 
   animate(dt, moving) {
@@ -443,6 +606,22 @@ export class Creature {
     m.body.rotation.set(0, 0, 0);
     m.body.position.set(0, 0, 0);
     m.body.scale.set(1, 1, 1);
+
+    if (this.behavior === 'sleep') {
+      for (const e of m.eyes) e.scale.y = 0.1;
+      const br = Math.sin(t * 1.2) * 0.03;
+      if (m.kind === 'flyer') {
+        // Landed, wings folded.
+        m.body.position.y = -0.3;
+        m.body.rotation.x = 0.1;
+        m.wings.forEach((w, i) => { w.rotation.z = (i % 2 ? -1 : 1) * -0.9; });
+        m.blob.scale.setScalar(1.2);
+      } else {
+        m.body.scale.set(1 + br * 0.5, 0.92 + br, 1 + br * 0.5);
+        m.body.position.y = -0.03;
+      }
+      return;
+    }
 
     if (this.behavior === 'settle') {
       const p = Math.min(1, this.settleTimer / (CT.colorFill + 0.6));
@@ -461,7 +640,7 @@ export class Creature {
       m.body.position.y = Math.sin(t * 3) * 0.05 + (eating ? -0.14 : 0);
       m.body.rotation.x = moving ? 0.25 : eating ? 0.35 + Math.sin(t * 10) * 0.08 : Math.sin(t * 1.7) * 0.05;
       m.body.rotation.z = Math.sin(t * 2.1) * 0.06;
-      m.wings.forEach((w, i) => { w.rotation.z = Math.sin(t * 40 + i * Math.PI) * 0.6 * (i ? -1 : 1); });
+      m.wings.forEach((w, i) => { w.rotation.z = Math.sin(t * (m.wingSpeed ?? 40) + (m.wingPhase ? i * Math.PI : 0)) * (m.wingAmp ?? 0.6) * (i % 2 ? -1 : 1); });
       m.ears.forEach((e, i) => { e.rotation.x = 0.3 + Math.sin(t * 5 + i) * 0.12; });
       m.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 4 + i) * 0.2; });
       m.blob.scale.setScalar(1 - m.body.position.y * 0.8);

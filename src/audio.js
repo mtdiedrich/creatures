@@ -159,6 +159,17 @@ export class Audio {
       this.tone({ type: 'sawtooth', f: 180, f2: 240, dur: 0.45, vol: 0.05 * vol, vib: 25, rev: 0.2 });
       this.tone({ type: 'triangle', f: 660, f2: 700, dur: 0.18, vol: 0.12 * vol, t: 0.3, vib: 20, rev: 0.4 });
       this.tone({ type: 'triangle', f: 880, f2: 860, dur: 0.3, vol: 0.12 * vol, t: 0.48, vib: 20, rev: 0.4 });
+    } else if (key === 'D') {
+      // Moonmoth: soft breathy "hoo-hoo" with a chime on top
+      this.tone({ f: 520, f2: 480, dur: 0.35, vol: 0.12 * vol, vib: 6, rev: 0.7, attack: 0.05 });
+      this.tone({ f: 520, f2: 440, dur: 0.5, vol: 0.12 * vol, t: 0.42, vib: 6, rev: 0.7, attack: 0.05 });
+      this.tone({ type: 'triangle', f: 2093, dur: 0.6, vol: 0.03 * vol, t: 0.2, rev: 0.8 });
+    } else if (key === 'E') {
+      // Puddlehop: a bubbly two-part croak
+      for (const t of [0, 0.28]) {
+        this.tone({ type: 'square', f: 210, f2: 150, dur: 0.16, vol: 0.06 * vol, t, rev: 0.2 });
+        this.tone({ f: 620, f2: 900, dur: 0.08, vol: 0.06 * vol, t: t + 0.12, rev: 0.3 });
+      }
     } else {
       // Glimmer: warbling two-note whistle with a shimmer
       this.tone({ f: 980, f2: 1460, dur: 0.35, vol: 0.13 * vol, vib: 40, rev: 0.5 });
@@ -167,45 +178,86 @@ export class Audio {
     }
   }
 
-  // ---- music: a gentle chamber-orchestra style loop (pizzicato, strings pad, flute melody) ----
+  // ---- music ----
+  // Two loops play side by side into their own gains; the day cycle crossfades between them.
+  // Day: chamber-orchestra style (pizzicato, string pad, flute). Night: slower lullaby (music box, soft pad, low bass).
   startMusic() {
-    const bpm = 92, beat = 60 / bpm;
-    // F major: F - Dm - Bb - C, then F - Am - Bb - C
-    const chords = [[53, 57, 60], [50, 53, 57], [46, 50, 53], [48, 52, 55], [53, 57, 60], [45, 48, 52], [46, 50, 53], [48, 52, 55]];
-    const melody = [
-      [72, 1], [74, 0.5], [76, 0.5], [77, 1], [76, 1], [74, 1.5], [72, 0.5], [69, 2], [70, 1], [72, 1], [74, 1], [72, 1], [67, 3], [null, 1],
-      [72, 1], [74, 0.5], [76, 0.5], [77, 1], [79, 1], [81, 1.5], [79, 0.5], [76, 2], [77, 1], [76, 1], [74, 1], [70, 1], [72, 3], [null, 1],
-    ];
-    const barLen = beat * 4;
-    const loopLen = barLen * chords.length;
-    let loopStart = this.ctx.currentTime + 0.3;
-    const out = this.music;
-    const scheduleLoop = (t0) => {
-      chords.forEach((ch, bi) => {
-        const bt = t0 + bi * barLen;
-        // String pad
-        ch.forEach((n) => {
-          for (const det of [-7, 7]) this.tone({ type: 'sawtooth', f: NOTE(n + 12), t: bt - this.ctx.currentTime, dur: barLen * 1.05, vol: 0.022, attack: 0.6, out, rev: 0.5, detune: det });
-        });
-        // Pizzicato bass + arpeggio
+    this.dayMusic = this.ctx.createGain(); this.dayMusic.gain.value = 1; this.dayMusic.connect(this.music);
+    this.nightMusic = this.ctx.createGain(); this.nightMusic.gain.value = 0; this.nightMusic.connect(this.music);
+    this.loop({
+      bpm: 92, out: this.dayMusic,
+      chords: [[53, 57, 60], [50, 53, 57], [46, 50, 53], [48, 52, 55], [53, 57, 60], [45, 48, 52], [46, 50, 53], [48, 52, 55]],
+      melody: [
+        [72, 1], [74, 0.5], [76, 0.5], [77, 1], [76, 1], [74, 1.5], [72, 0.5], [69, 2], [70, 1], [72, 1], [74, 1], [72, 1], [67, 3], [null, 1],
+        [72, 1], [74, 0.5], [76, 0.5], [77, 1], [79, 1], [81, 1.5], [79, 0.5], [76, 2], [77, 1], [76, 1], [74, 1], [70, 1], [72, 3], [null, 1],
+      ],
+      bar: (ch, bt, beat, out) => {
+        ch.forEach((n) => { for (const det of [-7, 7]) this.tone({ type: 'sawtooth', f: NOTE(n + 12), t: bt, dur: beat * 4 * 1.05, vol: 0.022, attack: 0.6, out, rev: 0.5, detune: det }); });
         const pat = [ch[0] - 12, ch[1], ch[2], ch[1], ch[0], ch[2], ch[1] + 12, ch[2]];
-        pat.forEach((n, i) => this.tone({ type: 'triangle', f: NOTE(n), t: bt + i * beat * 0.5 - this.ctx.currentTime, dur: 0.28, vol: i === 0 ? 0.16 : 0.08, out, rev: 0.4 }));
-      });
-      // Flute melody
+        pat.forEach((n, i) => this.tone({ type: 'triangle', f: NOTE(n), t: bt + i * beat * 0.5, dur: 0.28, vol: i === 0 ? 0.16 : 0.08, out, rev: 0.4 }));
+      },
+      lead: (n, t, dur, out) => this.tone({ type: 'sine', f: NOTE(n), t, dur, vol: 0.07, attack: 0.06, out, rev: 0.6, vib: 4 }),
+    });
+    this.loop({
+      bpm: 64, out: this.nightMusic,
+      chords: [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55], [50, 53, 57], [43, 46, 50], [46, 50, 53], [45, 49, 52]],
+      melody: [
+        [81, 2], [77, 1], [79, 1], [74, 3], [null, 1], [77, 2], [76, 1], [72, 1], [74, 4],
+        [81, 2], [79, 1], [77, 1], [74, 3], [null, 1], [70, 2], [72, 1], [73, 1], [74, 4],
+      ],
+      bar: (ch, bt, beat, out) => {
+        ch.forEach((n) => this.tone({ type: 'triangle', f: NOTE(n + 12), t: bt, dur: beat * 4 * 1.1, vol: 0.03, attack: 1.2, out, rev: 0.7 }));
+        this.tone({ type: 'sine', f: NOTE(ch[0] - 12), t: bt, dur: beat * 4, vol: 0.09, attack: 0.3, out, rev: 0.3 });
+        // Music-box arpeggio
+        const pat = [ch[0] + 24, ch[1] + 24, ch[2] + 24, ch[1] + 24];
+        pat.forEach((n, i) => {
+          this.tone({ type: 'sine', f: NOTE(n), t: bt + i * beat, dur: 0.9, vol: 0.035, out, rev: 0.8 });
+          this.tone({ type: 'sine', f: NOTE(n) * 3, t: bt + i * beat, dur: 0.25, vol: 0.006, out, rev: 0.8 });
+        });
+      },
+      lead: (n, t, dur, out) => this.tone({ type: 'triangle', f: NOTE(n), t, dur, vol: 0.045, attack: 0.15, out, rev: 0.75, vib: 3 }),
+    });
+  }
+
+  loop({ bpm, chords, melody, bar, lead, out }) {
+    const beat = 60 / bpm, barLen = beat * 4, loopLen = barLen * chords.length;
+    let loopStart = this.ctx.currentTime + 0.3;
+    const rel = (abs) => Math.max(0, abs - this.ctx.currentTime);
+    const schedule = (t0) => {
+      chords.forEach((ch, bi) => bar(ch, rel(t0 + bi * barLen), beat, out));
       let mt = t0;
-      for (const [n, len] of melody) {
-        if (n) this.tone({ type: 'sine', f: NOTE(n), t: mt - this.ctx.currentTime, dur: len * beat * 0.95, vol: 0.07, attack: 0.06, out, rev: 0.6, vib: 4 });
-        mt += len * beat;
-      }
+      for (const [n, len] of melody) { if (n) lead(n, rel(mt), len * beat * 0.95, out); mt += len * beat; }
     };
     const tick = () => {
-      if (!this.ctx) return;
-      if (this.ctx.currentTime > loopStart - 1.5) {
-        scheduleLoop(loopStart);
-        loopStart += loopLen;
-      }
+      if (this.ctx.currentTime > loopStart - 1.5) { schedule(loopStart); loopStart += loopLen; }
     };
     tick();
     setInterval(tick, 500);
+  }
+
+  // ---- ambience: day/night music crossfade, rain hiss, night crickets ----
+  setAmbience(night, rain) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.dayMusic.gain.setTargetAtTime(1 - night, now, 0.5);
+    this.nightMusic.gain.setTargetAtTime(night, now, 0.5);
+    this.music.gain.setTargetAtTime(0.28 * (1 - 0.3 * rain), now, 0.5);
+    if (!this.rainSrc) {
+      // Looping filtered noise for rain.
+      this.rainSrc = this.ctx.createBufferSource();
+      this.rainSrc.buffer = this.noiseBuf; this.rainSrc.loop = true;
+      const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+      const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000;
+      this.rainGain = this.ctx.createGain(); this.rainGain.gain.value = 0;
+      this.rainSrc.connect(hp).connect(lp).connect(this.rainGain).connect(this.sfx);
+      this.rainSrc.start();
+    }
+    this.rainGain.gain.setTargetAtTime(rain * 0.16, now, 0.4);
+    // Occasional cricket chirps at night (not in rain).
+    const crickets = night * (1 - rain);
+    if (!this.muted && crickets > 0.3 && Math.random() < 0.012 * crickets) {
+      const f = 4200 + Math.random() * 600;
+      for (let i = 0; i < 3; i++) this.tone({ type: 'sine', f, dur: 0.04, vol: 0.02 * crickets, t: i * 0.07, rev: 0.4 });
+    }
   }
 }

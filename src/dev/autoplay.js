@@ -6,7 +6,7 @@ import tuning from '../tuning.json';
 
 const SEEDS = ['grass', 'red', 'blue', 'yellow'];
 const TOOL = { shovel: 0, can: 1, seed: 2 };
-const TARGET = { grass: 24, red: 6, blue: 3, yellow: 3 };
+const TARGET = { grass: 24, red: 6, blue: 3, yellow: 4 };
 
 export function createAutoplay(game) {
   const errors = [];

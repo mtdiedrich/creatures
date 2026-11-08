@@ -160,7 +160,7 @@ export class Plant {
 
   rate() {
     if (this.type === 'grass') return 1 / this.cfg.growTime;
-    return 1 / (this.wet ? this.cfg.wetTime : this.cfg.dryTime);
+    return 1 / (this.wet || this.rainWatered ? this.cfg.wetTime : this.cfg.dryTime);
   }
   timeLeft() {
     if (this.isAdult) return 0;
@@ -183,7 +183,9 @@ export class Plant {
     this.game.terrain.refresh(this.tile.x, this.tile.z);
   }
 
-  canWater() { return this.isFlower && !this.isAdult && !this.wet; }
+  // v0.3: during rain every plant counts as watered.
+  get rainWatered() { return this.game.dayCycle.raining && !this.isAdult; }
+  canWater() { return this.isFlower && !this.isAdult && !this.wet && !this.rainWatered; }
 
   water() { this.setWet(true); }
 

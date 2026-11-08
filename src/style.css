@@ -218,3 +218,16 @@ body[data-device='touch'] .back-btn { display: grid; place-items: center; }
   .shop-cards { grid-template-columns: 1fr; }
   .journal-btn span:not(.glyph):not(.marker) { display: none; }
 }
+
+/* ---- v0.3 clock, weather, statuses ---- */
+.clock-box { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; min-width: 150px; transition: background 1s; }
+.clock-box.night { background: #2b3466; color: #f3efff; border-color: #1b1f3a; }
+.clock-box .icon { width: 30px; height: 30px; }
+.clock-time { font-size: 20px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.clock-day { font-size: 12px; opacity: 0.8; }
+.clock-weather .icon { width: 30px; height: 30px; }
+.info-status { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px; border: 2px solid var(--ink); font-size: 12px; font-weight: 600; }
+.info-status.sleep { background: #d9defc; }
+.info-status.hungry { background: #ffd2c4; color: #b4321f; }
+.tip.weather { background: #3b4f8a; }
+@media (max-width: 760px) { .clock-box { min-width: 0; } .clock-day { display: none; } }

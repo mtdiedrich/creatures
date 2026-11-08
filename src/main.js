@@ -12,6 +12,7 @@ import { FX } from './fx.js';
 import { UI, SEED_ORDER } from './ui.js';
 import { globalUniforms } from './art.js';
 import { ICONS } from './icons.js';
+import { DayCycle } from './daycycle.js';
 
 const CT = tuning.creatures;
 // Order matches the number keys: 1 shovel, 2 watering can, 3 seed bag.
@@ -82,6 +83,7 @@ class Game {
       dragPan: (dx, dy) => { const k = this.cam.dist / innerHeight * 1.2; this.cam.pan(-dx * k, dy * k); },
       mute: () => this.toggleMute(),
     });
+    this.dayCycle = new DayCycle(this);
     this.ui = new UI(this);
 
     if (TIME_SCALE !== 1) {
@@ -109,11 +111,13 @@ class Game {
       vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ float h = clamp(normalize(vP).y * 1.6, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, h), 1.0); }',
     });
+    this.skyUniforms = mat.uniforms;
     this.scene.add(new THREE.Mesh(geo, mat));
   }
 
   buildLights() {
-    this.scene.add(new THREE.HemisphereLight(0xcdeeff, 0x6fae4a, 1.25));
+    this.hemi = new THREE.HemisphereLight(0xcdeeff, 0x6fae4a, 1.25);
+    this.scene.add(this.hemi);
     const sun = new THREE.DirectionalLight(0xfff0d0, 2.6);
     sun.position.set(14, 24, 9);
     sun.castShadow = true;
@@ -123,6 +127,7 @@ class Game {
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.03;
     this.scene.add(sun);
+    this.sun = sun;
   }
 
   buildCursor() {
@@ -336,6 +341,7 @@ class Game {
   waterPlant(p) {
     if (p.type === 'grass') return this.nope('Grass needs no water');
     if (p.isAdult) return this.nope('Fully grown — no water needed');
+    if (this.dayCycle.raining) return this.nope('The rain is watering everything');
     if (p.wet) return this.nope('Already wet');
     if (this.canCharges <= 0) return this.nope('The can is empty — refill it at the well');
     this.canCharges--;
@@ -423,9 +429,21 @@ class Game {
   adultFlowers() { return this.plants.filter((p) => p.isAdult); }
 
   // Live progress for a list of requirements: [{label, have, need}].
-  requirementProgress(reqs) {
+  requirementProgress(reqs, key = null) {
+    const c = key ? this.creatures[key] : null;
+    const dc = this.dayCycle;
     return reqs.map((r) => {
       switch (r.kind) {
+        case 'night':
+          return { label: 'Night time', have: dc.isNight ? 1 : 0, need: r.count };
+        case 'rain':
+          return { label: 'Rain', have: dc.raining ? 1 : 0, need: r.count };
+        case 'soil':
+          return { label: 'Soil tiles', have: this.grid.tiles.filter((t) => t.type === 'soil' && !t.object).length, need: r.count };
+        case 'nights':
+          return { label: 'Full nights spent here', have: c?.nightsPresent ?? 0, need: r.count };
+        case 'showers':
+          return { label: 'Rain showers spent here', have: c?.showersSeen ?? 0, need: r.count };
         case 'grass':
           return { label: 'Grass tiles', have: this.grid.countGrass(), need: r.count };
         case 'adult':
@@ -440,7 +458,7 @@ class Game {
       return { label: '?', have: 0, need: 1 };
     });
   }
-  met(reqs) { return this.requirementProgress(reqs).every((r) => r.have >= r.need); }
+  met(reqs, key) { return this.requirementProgress(reqs, key).every((r) => r.have >= r.need); }
 
   // Number of planted flowers of type a with a type-b flower on one of the 8 neighbouring tiles (any growth stage).
   adjacentPairs([a, b]) {
@@ -461,7 +479,7 @@ class Game {
   // A stage's requirements with journal state: [{id, label, have, need, revealed}].
   stageRequirements(key, stage) {
     const j = this.journal[key];
-    return this.requirementProgress(tuning.species[key][stage]).map((r, i) => {
+    return this.requirementProgress(tuning.species[key][stage], key).map((r, i) => {
       const id = `${stage}:${i}`;
       return { ...r, id, req: tuning.species[key][stage][i], revealed: j.met.has(stage) || j.revealed.has(id) };
     });
@@ -477,7 +495,7 @@ class Game {
       for (const stage of STAGES) {
         if (j.met.has(stage)) continue;
         for (const r of this.stageRequirements(key, stage)) {
-          if (!r.revealed && (r.have >= r.need * th || this.plantedEarly(r.req))) { j.revealed.add(r.id); fresh++; }
+          if (!r.revealed && (r.have >= r.need * th || this.earlyReveal(r.req, key))) { j.revealed.add(r.id); fresh++; }
         }
       }
       if (fresh) this.markUnread(key, 'New hint');
@@ -486,8 +504,11 @@ class Game {
 
   // v0.2.1: a flower requirement that needs only 1 adult can't reach 50% before it's met, so planting
   // one flower of that type (any stage) counts as halfway and reveals it.
-  plantedEarly(req) {
-    return req.kind === 'adult' && req.count === 1 && this.plants.some((p) => p.type === req.plant);
+  // v0.3: "a full night here" reveals once the creature has been present since the current night began.
+  earlyReveal(req, key) {
+    if (req.kind === 'adult' && req.count === 1) return this.plants.some((p) => p.type === req.plant);
+    if (req.kind === 'nights') return this.dayCycle.isNight && !!this.creatures[key]?.presentAtNightStart;
+    return false;
   }
 
   markUnread(key, what) {
@@ -509,15 +530,15 @@ class Game {
       const cfg = tuning.species[key];
       const c = this.creatures[key];
       if (!c) {
-        if (this.pendingSpawn[key] == null && this.met(cfg.appear))
+        if (this.pendingSpawn[key] == null && this.met(cfg.appear, key))
           this.pendingSpawn[key] = CT.spawnDelayMin + Math.random() * (CT.spawnDelayMax - CT.spawnDelayMin);
-      } else if (c.stage === 'appear' && this.time - c.bornAt >= tuning.ui.bannerTime + 1 && this.met(cfg.visit)) {
+      } else if (c.stage === 'appear' && this.time - c.bornAt >= tuning.ui.bannerTime + 1 && this.met(cfg.visit, key)) {
         // Short dwell so the "appeared" banner and call land before the visit starts (still well under 10 s).
         c.beginVisit();
         this.meetStage(key, 'visit');
         this.ui.banner(`${c.displayName} is visiting!`);
         this.audio.play('sting-visit');
-      } else if (c.stage === 'visit' && c.inside && c.behavior !== 'eat' && this.met(cfg.resident)) {
+      } else if (c.stage === 'visit' && c.inside && c.behavior !== 'eat' && this.met(cfg.resident, key)) {
         c.beginResident();
         this.meetStage(key, 'resident');
         this.ui.banner(`${c.displayName} moved in!`);
@@ -533,12 +554,30 @@ class Game {
     const c = new Creature(this, key);
     c.spawnOutside();
     c.bornAt = this.time;
+    if (this.dayCycle.raining) c.showersSeen = 1; // the shower it arrives in counts
     this.creatures[key] = c;
     this.meetStage(key, 'appear');
     this.ui.banner(`${c.displayName} appeared!`);
     this.audio.play('sting-appear');
     setTimeout(() => this.audio.call(key, c.pos), 1100);
   }
+
+  // ---------- day cycle events ----------
+  onNightStart() {
+    for (const c of Object.values(this.creatures)) if (c) c.presentAtNightStart = true;
+    this.ui.tip('Night falls', 'weather');
+  }
+  onNightEnd() {
+    for (const c of Object.values(this.creatures)) if (c?.presentAtNightStart) { c.nightsPresent++; c.presentAtNightStart = false; }
+  }
+  onRainStart() {
+    for (const c of Object.values(this.creatures)) if (c) c.showersSeen++;
+    this.ui.tip("It's raining: every plant is watered", 'weather');
+  }
+  onRainEnd() { this.ui.tip('The rain has stopped', 'weather'); }
+
+  // Full-screen menus pause the clock and everything that runs on it.
+  get paused() { return this.ui.shopOpen || this.ui.journalOpen; }
 
   openJournal() {
     if (!this.started) return;
@@ -564,8 +603,9 @@ class Game {
     const dt = raw * TIME_SCALE;
     globalUniforms.uTime.value += raw;
 
-    if (this.started) {
+    if (this.started && !this.paused) {
       this.time += dt;
+      this.dayCycle.update(dt);
       for (const p of [...this.plants]) p.update(dt, this.time);
 
       for (const key of SPECIES) {
@@ -577,10 +617,11 @@ class Game {
       this.stageTimer += dt;
       if (this.stageTimer >= CT.stageCheckInterval) { this.stageTimer = 0; this.stageCheck(); }
       for (const c of Object.values(this.creatures)) if (c) c.update(dt);
-    } else {
+    } else if (!this.started) {
       // Gentle idle orbit behind the title card.
       this.cam.orbit(raw * 0.05);
     }
+    this.dayCycle.render(raw);
 
     const ptr = this.input.pointer;
     const mouse = this.input.device === 'mouse';
